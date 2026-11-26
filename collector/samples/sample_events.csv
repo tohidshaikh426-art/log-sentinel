@@ -1,0 +1,4 @@
+event_timestamp,username,source_ip,event_type,auth_result,auth_method,service,raw_event
+2026-11-26T16:10:00Z,deploy,198.51.100.10,ssh_accepted_login,success,publickey,sshd,Accepted publickey for deploy from 198.51.100.10
+2026-11-26T16:11:00Z,admin,203.0.113.55,ssh_failed_password,failure,password,sshd,Failed password for admin from 203.0.113.55
+2026-11-26T16:11:30Z,,192.0.2.99,ssh_auth_failure,failure,,,Missing optional username and auth_method
