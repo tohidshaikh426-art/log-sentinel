@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "severity_thresholds": {
+    "low": [0, 24],
+    "medium": [25, 49],
+    "high": [50, 74],
+    "critical": [75, 100]
+  },
+  "scoring": {
+    "failure_points_per_attempt": 7,
+    "failure_points_cap": 40,
+    "spread_points_per_user": 6,
+    "spread_points_cap": 25,
+    "success_after_failure_bonus": 30,
+    "velocity_attempts_per_min_threshold": 3.0,
+    "velocity_bonus": 10,
+    "repeat_offender_bonus": 20
+  },
+  "rules": {
+    "RULE_001": {
+      "name": "Repeated Failed Authentication (Possible Brute Force)",
+      "enabled": true,
+      "threshold": 5,
+      "window_seconds": 120,
+      "description": "Triggers when repeated failed authentication attempts occur from the same source IP within the configured time window."
+    },
+    "RULE_002": {
+      "name": "Multiple Target Accounts (Potential Password Spraying)",
+      "enabled": true,
+      "threshold": 4,
+      "window_seconds": 300,
+      "description": "Triggers when one source IP fails authentication against multiple distinct usernames within the configured time window."
+    },
+    "RULE_003": {
+      "name": "Suspicious Success After Failures",
+      "enabled": true,
+      "threshold": 3,
+      "window_seconds": 600,
+      "description": "Triggers when a successful authentication follows repeated failures from the same source IP and username."
+    },
+    "RULE_004": {
+      "name": "High-Volume Authentication Failures",
+      "enabled": true,
+      "threshold": 20,
+      "window_seconds": 300,
+      "description": "Triggers when total authentication failures across a monitored device exceed the configured threshold."
+    },
+    "RULE_005": {
+      "name": "Repeat Offender Activity",
+      "enabled": true,
+      "threshold": 3,
+      "window_seconds": 300,
+      "repeat_cooldown_seconds": 300,
+      "prior_lookback_seconds": 86400,
+      "description": "Triggers when a previously flagged source IP continues suspicious failed authentication behavior."
+    }
+  }
+}
