@@ -1,0 +1,8 @@
+[functions.ingest-events]
+verify_jwt = false
+
+[functions.collector-heartbeat]
+verify_jwt = false
+
+[functions.analyze-upload]
+verify_jwt = true

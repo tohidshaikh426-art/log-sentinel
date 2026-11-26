@@ -1,12 +1,12 @@
-# Log Sentinel — Supabase Setup & Phase 2 Migration Guide
+# Log Sentinel — Supabase Setup, Migrations & Edge Functions Guide
 
 ## 1. Create Your Free Supabase Project
-1. Sign in to Supabase and create a new project on the **Free** tier (name it e.g. `log-sentinel`).
+1. Sign in to Supabase and create a new project on the **Free** tier (name it e.g. `log-sentinel-db`).
 2. Save your database password safely (never commit it to Git).
 3. Under **Project Settings → API**, note:
    - **Project URL** (`VITE_SUPABASE_URL`)
    - **anon / public key** (`VITE_SUPABASE_ANON_KEY`)
-   - **service_role key** (for Edge Function secrets in Phase 5 — never put in `frontend/` or `collector/`).
+   - **service_role key** (for Edge Function runtime secrets only — automatically injected in Supabase Cloud; never put in `frontend/` or `collector/`).
 
 ## 2. Apply Phase 2 Migrations (SQL Editor Method — No Docker Needed)
 Open **SQL Editor → New Query** in the Supabase Dashboard and run these files **in order**:
@@ -23,3 +23,19 @@ Run `supabase/seed/verify_phase2_rls.sql` in the SQL Editor.
 1. Go to **Authentication → Users → Add user → Create new user**.
 2. Enter your admin email and a strong password (check **Auto Confirm User**).
 3. Verify in **Table Editor → `profiles`** that your admin profile row was created automatically by the `on_auth_user_created` trigger.
+
+## 5. Deploy Phase 5 Edge Functions
+When deploying via Supabase CLI (`npx supabase`):
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase functions deploy ingest-events --no-verify-jwt
+npx supabase functions deploy collector-heartbeat --no-verify-jwt
+npx supabase functions deploy analyze-upload
+```
+*(Collector endpoints disable gateway JWT checks via `supabase/config.toml` because they authenticate collectors using per-device SHA-256 `X-Collector-Token` hashes inside `device_credentials`.)*
+
+## 6. Run Edge Function Unit Tests Locally
+```bash
+node --experimental-strip-types --test supabase/functions/tests/edge_functions_test.ts
+```
