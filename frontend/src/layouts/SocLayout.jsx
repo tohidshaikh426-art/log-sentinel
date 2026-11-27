@@ -73,6 +73,7 @@ export default function SocLayout() {
   });
 
   const statusSummary = useMemo(() => summarizeDevices(devices, nowMs), [devices, nowMs]);
+  const hasSimulatedDevice = useMemo(() => devices.some((d) => d.is_simulated), [devices]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -158,6 +159,9 @@ export default function SocLayout() {
           </div>
 
           <div className="soc-topbar-right">
+            {hasSimulatedDevice ? (
+              <span className="soc-badge badge-amber">SIMULATED DATA ACTIVE</span>
+            ) : null}
             <StatusBadge
               status={statusSummary.monitoringState}
               label={`Monitoring: ${statusSummary.monitoringState.toUpperCase()}`}

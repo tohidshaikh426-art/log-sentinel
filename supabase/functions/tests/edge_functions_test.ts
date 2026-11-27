@@ -5,6 +5,7 @@ import { sha256Hex } from "../_shared/auth.ts";
 import { handleAnalyzeUploadRequest } from "../analyze-upload/handler.ts";
 import { handleHeartbeatRequest } from "../collector-heartbeat/handler.ts";
 import { handleIngestRequest } from "../ingest-events/handler.ts";
+import { handleRunSimulationRequest } from "../run-simulation/handler.ts";
 
 const DEVICE_ID = "11111111-1111-4111-8111-111111111111";
 const VALID_TOKEN = "super-secret-collector-token-123456";
@@ -371,4 +372,52 @@ test("analyze-upload rejects unauthorized callers and unsafe files, and detects 
   assert.equal(data.incidents[0].rule_id, "RULE_001");
   assert.equal(rpcCalls.length, 1);
   assert.equal(uploadRows.length, 1);
+});
+
+test("run-simulation requires admin auth and executes normal, brute_force, and collector_offline scenarios", async () => {
+  const { adminClient, anonClient, rpcCalls, deviceUpdates } = createMockClients({
+    authUserId: "admin-user-123",
+  });
+
+  const unauthReq = new Request("http://localhost/run-simulation", {
+    method: "POST",
+    body: JSON.stringify({ scenario: "brute_force" }),
+  });
+  const unauthRes = await handleRunSimulationRequest(unauthReq, adminClient, anonClient);
+  assert.equal(unauthRes.status, 401);
+
+  const normalReq = new Request("http://localhost/run-simulation", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-admin-jwt" },
+    body: JSON.stringify({ scenario: "normal" }),
+  });
+  const normalRes = await handleRunSimulationRequest(normalReq, adminClient, anonClient);
+  assert.equal(normalRes.status, 200);
+  const normalData = await normalRes.json();
+  assert.equal(normalData.is_simulated, true);
+  assert.equal(normalData.events_generated, 4);
+  assert.equal(normalData.incidents_generated, 0);
+
+  const bfReq = new Request("http://localhost/run-simulation", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-admin-jwt" },
+    body: JSON.stringify({ scenario: "brute_force" }),
+  });
+  const bfRes = await handleRunSimulationRequest(bfReq, adminClient, anonClient);
+  assert.equal(bfRes.status, 200);
+  const bfData = await bfRes.json();
+  assert.equal(bfData.events_generated, 7);
+  assert.equal(bfData.incidents_generated, 1);
+  assert.deepEqual(bfData.rule_ids, ["RULE_001"]);
+  assert.equal(rpcCalls[0].args.p_is_simulated, true);
+
+  const offReq = new Request("http://localhost/run-simulation", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-admin-jwt" },
+    body: JSON.stringify({ scenario: "collector_offline" }),
+  });
+  const offRes = await handleRunSimulationRequest(offReq, adminClient, anonClient);
+  assert.equal(offRes.status, 200);
+  const lastUpdate = deviceUpdates[deviceUpdates.length - 1];
+  assert.equal(lastUpdate.status, "offline");
 });

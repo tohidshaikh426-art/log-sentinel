@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import DemoSimulationPanel from '../components/DemoSimulationPanel';
 import {
   EmptyState,
   ErrorBanner,
@@ -171,6 +172,27 @@ export default function LiveMonitoringPage() {
       </header>
 
       <ErrorBanner message={error} onRetry={loadInitial} />
+
+      <DemoSimulationPanel
+        onCloudComplete={loadInitial}
+        onOfflinePreview={(localData) => {
+          setDevices((prev) => {
+            const filtered = prev.filter((d) => d.id !== localData.device.id);
+            return [localData.device, ...filtered];
+          });
+          if (localData.events.length > 0) {
+            setEvents((prev) => [...localData.events, ...prev].slice(0, MAX_STREAM_EVENTS));
+          }
+          if (localData.incidents.length > 0) {
+            setIncidents((prev) => [...localData.incidents, ...prev].slice(0, MAX_STREAM_INCIDENTS));
+          }
+        }}
+        onOfflineReset={() => {
+          setDevices((prev) => prev.filter((d) => d.id !== 'offline-demo-sim-01'));
+          setEvents((prev) => prev.filter((e) => !String(e.id).startsWith('local-sim-')));
+          setIncidents((prev) => prev.filter((i) => !String(i.id).startsWith('local-inc-')));
+        }}
+      />
 
       <section style={{ marginBottom: '1.15rem' }} aria-label="Collector health">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexWrap: 'wrap', gap: '0.5rem' }}>

@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.analyze-upload]
 verify_jwt = true
+
+[functions.run-simulation]
+verify_jwt = true

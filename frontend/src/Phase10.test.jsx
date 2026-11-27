@@ -2,6 +2,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-li
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRealtimeFeed } from './hooks/useRealtime';
+import { ToastProvider } from './hooks/useToast';
 import LiveMonitoringPage from './pages/LiveMonitoringPage';
 import {
   computeEffectiveStatus,
@@ -160,9 +161,11 @@ describe('Phase 10 Supabase Realtime & Stale Heartbeat Detection', () => {
     mockFetchIncidentsPage.mockResolvedValue({ rows: [], totalCount: 0, page: 1, pageSize: 15 });
 
     render(
-      <MemoryRouter>
-        <LiveMonitoringPage />
-      </MemoryRouter>,
+      <ToastProvider>
+        <MemoryRouter>
+          <LiveMonitoringPage />
+        </MemoryRouter>
+      </ToastProvider>,
     );
 
     await waitFor(() => {

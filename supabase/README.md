@@ -32,6 +32,7 @@ npx supabase link --project-ref <your-project-ref>
 npx supabase functions deploy ingest-events --no-verify-jwt
 npx supabase functions deploy collector-heartbeat --no-verify-jwt
 npx supabase functions deploy analyze-upload
+npx supabase functions deploy run-simulation
 ```
 *(Collector endpoints disable gateway JWT checks via `supabase/config.toml` because they authenticate collectors using per-device SHA-256 `X-Collector-Token` hashes inside `device_credentials`.)*
 
