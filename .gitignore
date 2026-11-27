@@ -42,3 +42,6 @@ supabase/.temp/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local generated progress reports
+docs/reports/
