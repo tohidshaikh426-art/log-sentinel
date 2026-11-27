@@ -4,10 +4,14 @@ import { AuthProvider } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import SocLayout from './layouts/SocLayout';
 import EventsPage from './pages/EventsPage';
+import IncidentsPage from './pages/IncidentsPage';
 import IpAnalysisPage from './pages/IpAnalysisPage';
+import LogAnalyzerPage from './pages/LogAnalyzerPage';
 import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
 import PhaseStubPage from './pages/PhaseStubPage';
+import ReportsPage from './pages/ReportsPage';
+import SettingsPage from './pages/SettingsPage';
 
 export function AppRoutes() {
   return (
@@ -33,47 +37,11 @@ export function AppRoutes() {
           }
         />
         <Route path="events" element={<EventsPage />} />
-        <Route
-          path="incidents"
-          element={
-            <PhaseStubPage
-              title="Security Incidents"
-              subtitle="Rule-based detections, risk scores, evidence, and triage workflow."
-              phaseNote="Phase 9"
-            />
-          }
-        />
+        <Route path="incidents" element={<IncidentsPage />} />
         <Route path="ip-analysis" element={<IpAnalysisPage />} />
-        <Route
-          path="analyzer"
-          element={
-            <PhaseStubPage
-              title="Historical Log Analyzer"
-              subtitle="Upload Ubuntu auth.log, journal, or CSV files for threat scanning."
-              phaseNote="Phase 9"
-            />
-          }
-        />
-        <Route
-          path="reports"
-          element={
-            <PhaseStubPage
-              title="Reports"
-              subtitle="Downloadable CSV and printable PDF security summaries."
-              phaseNote="Phase 9"
-            />
-          }
-        />
-        <Route
-          path="settings"
-          element={
-            <PhaseStubPage
-              title="Settings"
-              subtitle="Monitored device tokens, collector instructions, and rule thresholds."
-              phaseNote="Phase 9"
-            />
-          }
-        />
+        <Route path="analyzer" element={<LogAnalyzerPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

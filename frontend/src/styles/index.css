@@ -818,3 +818,89 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- Phase 9: Investigation Drawer, Evidence Grid, Uploader & Print CSS ---- */
+.evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin: 0.7rem 0;
+}
+
+.evidence-chip {
+  background: var(--bg-shell);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.7rem;
+}
+
+.evidence-chip-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.evidence-chip-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 0.12rem;
+}
+
+.upload-dropzone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-shell);
+  padding: 1.6rem 1.25rem;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.upload-dropzone.active {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+@media (max-width: 760px) {
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .soc-sidebar,
+  .soc-topbar,
+  .no-print,
+  .toast-stack {
+    display: none !important;
+  }
+
+  body,
+  .soc-app,
+  .soc-main,
+  .soc-card,
+  .table-card,
+  .kpi-card {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .soc-table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+  }
+
+  .kpi-label,
+  .kpi-meta,
+  .soc-page-subtitle {
+    color: #475569 !important;
+  }
+}
