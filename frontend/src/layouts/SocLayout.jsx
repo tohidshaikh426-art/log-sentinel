@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { StatusBadge } from '../components/UiPrimitives';
 import { useAuth } from '../hooks/useAuth';
+import { useRealtimeFeed } from '../hooks/useRealtime';
 import { useToast } from '../hooks/useToast';
 import {
-  EMPTY_MONITORING_SUMMARY,
-  fetchMonitoringSummary,
+  fetchMonitoringDevices,
+  summarizeDevices,
 } from '../services/monitoringStatusService';
-import { StatusBadge } from '../components/UiPrimitives';
 
 export const NAV_ITEMS = [
   { to: '/', label: 'Overview', icon: '◈', section: 'Monitoring' },
@@ -24,30 +25,54 @@ export default function SocLayout() {
   const { showToast } = useToast();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [clockText, setClockText] = useState(() => new Date().toLocaleString());
-  const [statusSummary, setStatusSummary] = useState(EMPTY_MONITORING_SUMMARY);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [devices, setDevices] = useState([]);
 
-  const loadStatus = useCallback(async () => {
+  const loadDevices = useCallback(async () => {
     try {
-      const summary = await fetchMonitoringSummary();
-      setStatusSummary(summary);
+      const list = await fetchMonitoringDevices();
+      setDevices(list);
     } catch {
-      // Keep neutral state on transient error without claiming monitoring is active
-      setStatusSummary(EMPTY_MONITORING_SUMMARY);
+      setDevices([]);
     }
   }, []);
 
   useEffect(() => {
-    loadStatus();
-    const statusTimer = setInterval(loadStatus, 30000);
+    loadDevices();
+    // Re-evaluate 90s heartbeat staleness locally every 15s (zero DB polling)
+    const staleTimer = setInterval(() => setNowMs(Date.now()), 15000);
     const clockTimer = setInterval(() => {
       setClockText(new Date().toLocaleString());
     }, 1000);
 
     return () => {
-      clearInterval(statusTimer);
+      clearInterval(staleTimer);
       clearInterval(clockTimer);
     };
-  }, [loadStatus]);
+  }, [loadDevices]);
+
+  const { connectionState } = useRealtimeFeed({
+    enabled: Boolean(user),
+    channelName: 'soc-topbar-devices',
+    onDeviceChange: (payload) => {
+      if (payload.eventType === 'DELETE' && payload.old?.id) {
+        setDevices((prev) => prev.filter((d) => d.id !== payload.old.id));
+        return;
+      }
+      const row = payload.new;
+      if (!row) return;
+      setDevices((prev) => {
+        const exists = prev.some((d) => d.id === row.id);
+        if (exists) {
+          return prev.map((d) => (d.id === row.id ? { ...d, ...row } : d));
+        }
+        return [row, ...prev];
+      });
+    },
+    onReconnectSync: loadDevices,
+  });
+
+  const statusSummary = useMemo(() => summarizeDevices(devices, nowMs), [devices, nowMs]);
 
   useEffect(() => {
     if (!drawerOpen) return undefined;
@@ -112,7 +137,7 @@ export default function SocLayout() {
         </nav>
 
         <div className="soc-sidebar-footer">
-          <div>Mode: Defensive Rule Engine</div>
+          <div>Realtime: {connectionState}</div>
           <div>Heartbeat threshold: 90s</div>
         </div>
       </aside>
@@ -139,7 +164,13 @@ export default function SocLayout() {
               showDot
             />
             <StatusBadge
-              status={statusSummary.onlineCount > 0 ? 'online' : statusSummary.totalDevices === 0 ? 'idle' : 'offline'}
+              status={
+                statusSummary.onlineCount > 0
+                  ? 'online'
+                  : statusSummary.totalDevices === 0
+                    ? 'idle'
+                    : 'offline'
+              }
               label={`Collector: ${statusSummary.collectorLabel}`}
               showDot
             />
@@ -160,7 +191,7 @@ export default function SocLayout() {
         </header>
 
         <main className="soc-main">
-          <Outlet context={{ statusSummary, refreshStatus: loadStatus }} />
+          <Outlet context={{ statusSummary, refreshStatus: loadDevices, connectionState }} />
         </main>
       </div>
     </div>

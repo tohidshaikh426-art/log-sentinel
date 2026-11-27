@@ -6,6 +6,7 @@ import {
   SeverityBadge,
   StatusBadge,
 } from '../components/UiPrimitives';
+import { useRealtimeFeed } from '../hooks/useRealtime';
 import { useToast } from '../hooks/useToast';
 import {
   fetchIncidentLinkedEvents,
@@ -66,6 +67,41 @@ export default function IncidentsPage() {
   useEffect(() => {
     loadIncidents();
   }, [loadIncidents]);
+
+  useRealtimeFeed({
+    enabled: true,
+    channelName: 'incidents-page-live',
+    onIncidentChange: (payload) => {
+      if (payload.eventType === 'DELETE' && payload.old?.id) {
+        setIncidents((prev) => prev.filter((r) => r.id !== payload.old.id));
+        if (activeIncident?.id === payload.old.id) setActiveIncident(null);
+        return;
+      }
+      const row = payload.new;
+      if (!row) return;
+      if (dataMode === 'live' && row.is_simulated) return;
+      if (dataMode === 'simulated' && !row.is_simulated) return;
+      if (severity !== 'all' && row.severity !== severity) return;
+      if (status !== 'all' && row.status !== status) return;
+
+      if (activeIncident?.id === row.id) {
+        setActiveIncident((prev) => (prev ? { ...prev, ...row } : prev));
+      }
+
+      setIncidents((prev) => {
+        const exists = prev.some((r) => r.id === row.id);
+        if (exists) {
+          return prev.map((r) => (r.id === row.id ? { ...r, ...row } : r));
+        }
+        if (page === 1 && !appliedSearch) {
+          setTotalCount((c) => c + 1);
+          return [row, ...prev].slice(0, PAGE_SIZE);
+        }
+        return prev;
+      });
+    },
+    onReconnectSync: loadIncidents,
+  });
 
   useEffect(() => {
     if (!activeIncident) return undefined;

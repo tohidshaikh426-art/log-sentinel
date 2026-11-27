@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 
+export const HEARTBEAT_STALE_MS = 90_000;
+
 export const EMPTY_MONITORING_SUMMARY = {
   totalDevices: 0,
   onlineCount: 0,
@@ -11,25 +13,17 @@ export const EMPTY_MONITORING_SUMMARY = {
   collectorLabel: 'No Collector',
 };
 
-/**
- * Fetch real monitored device health from Supabase's `monitored_devices_status` view.
- * Never reports monitoring as active unless at least one collector has a fresh heartbeat.
- */
-export async function fetchMonitoringSummary() {
-  if (!supabase) {
-    return { ...EMPTY_MONITORING_SUMMARY };
-  }
+export function computeEffectiveStatus(device, nowMs = Date.now()) {
+  if (!device) return 'offline';
+  if (device.status === 'paused') return 'paused';
+  if (!device.last_heartbeat) return 'offline';
+  const hbMs = Date.parse(device.last_heartbeat);
+  if (!Number.isFinite(hbMs)) return 'offline';
+  return nowMs - hbMs > HEARTBEAT_STALE_MS ? 'offline' : 'online';
+}
 
-  const { data, error } = await supabase
-    .from('monitored_devices_status')
-    .select('id, effective_status, last_heartbeat, last_event_at, is_simulated');
-
-  if (error) {
-    throw new Error(error.message || 'Unable to load collector status');
-  }
-
-  const devices = data || [];
-  if (devices.length === 0) {
+export function summarizeDevices(devices, nowMs = Date.now()) {
+  if (!devices || devices.length === 0) {
     return { ...EMPTY_MONITORING_SUMMARY };
   }
 
@@ -40,8 +34,9 @@ export async function fetchMonitoringSummary() {
   let lastHeartbeatAt = null;
 
   for (const dev of devices) {
-    if (dev.effective_status === 'online') onlineCount += 1;
-    else if (dev.effective_status === 'paused') pausedCount += 1;
+    const eff = computeEffectiveStatus(dev, nowMs);
+    if (eff === 'online') onlineCount += 1;
+    else if (eff === 'paused') pausedCount += 1;
     else offlineCount += 1;
 
     if (dev.last_event_at && (!lastEventAt || dev.last_event_at > lastEventAt)) {
@@ -72,4 +67,29 @@ export async function fetchMonitoringSummary() {
     monitoringState,
     collectorLabel,
   };
+}
+
+/**
+ * Fetch real monitored device health from Supabase's `monitored_devices_status` view.
+ * Never reports monitoring as active unless at least one collector has a fresh heartbeat.
+ */
+export async function fetchMonitoringDevices() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('monitored_devices_status')
+    .select(
+      'id, device_name, host_identifier, os_info, collector_version, status, effective_status, last_heartbeat, last_event_at, events_received_count, is_simulated',
+    )
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message || 'Unable to load collector status');
+  }
+  return data || [];
+}
+
+export async function fetchMonitoringSummary() {
+  const devices = await fetchMonitoringDevices();
+  return summarizeDevices(devices);
 }

@@ -6,6 +6,7 @@ import {
   LoadingState,
   StatusBadge,
 } from '../components/UiPrimitives';
+import { useRealtimeFeed } from '../hooks/useRealtime';
 import { fetchDevicesList, fetchEventsPage } from '../services/dashboardService';
 import {
   formatIpAddress,
@@ -72,6 +73,36 @@ export default function EventsPage() {
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
+
+  useRealtimeFeed({
+    enabled: true,
+    channelName: 'events-page-live',
+    onEventInsert: (newEv) => {
+      if (page !== 1 || appliedSearch) return;
+      if (dataMode === 'live' && newEv.is_simulated) return;
+      if (dataMode === 'simulated' && !newEv.is_simulated) return;
+      if (authResult !== 'all' && newEv.auth_result !== authResult) return;
+      if (deviceId !== 'all' && newEv.device_id !== deviceId) return;
+
+      const matchedDevice = devices.find((d) => d.id === newEv.device_id);
+      const enriched = matchedDevice
+        ? {
+            ...newEv,
+            monitored_devices: {
+              device_name: matchedDevice.device_name,
+              host_identifier: matchedDevice.host_identifier,
+            },
+          }
+        : newEv;
+
+      setEvents((prev) => {
+        if (prev.some((row) => row.id === enriched.id)) return prev;
+        setTotalCount((c) => c + 1);
+        return [enriched, ...prev].slice(0, PAGE_SIZE);
+      });
+    },
+    onReconnectSync: loadEvents,
+  });
 
   function handleSearchSubmit(e) {
     e.preventDefault();

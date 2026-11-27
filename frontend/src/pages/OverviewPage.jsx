@@ -8,6 +8,7 @@ import {
   SeverityBadge,
   StatusBadge,
 } from '../components/UiPrimitives';
+import { useRealtimeFeed } from '../hooks/useRealtime';
 import { fetchOverviewMetrics } from '../services/dashboardService';
 import {
   formatIpAddress,
@@ -39,6 +40,55 @@ export default function OverviewPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const matchesMode = useCallback(
+    (row) => {
+      if (dataMode === 'live') return !row.is_simulated;
+      if (dataMode === 'simulated') return Boolean(row.is_simulated);
+      return true;
+    },
+    [dataMode],
+  );
+
+  useRealtimeFeed({
+    enabled: true,
+    channelName: 'overview-live',
+    onEventInsert: (newEv) => {
+      if (!matchesMode(newEv)) return;
+      setOverview((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          kpis: {
+            ...prev.kpis,
+            totalEvents: prev.kpis.totalEvents + 1,
+            successfulLogins:
+              prev.kpis.successfulLogins + (newEv.auth_result === 'success' ? 1 : 0),
+            failedLogins:
+              prev.kpis.failedLogins + (newEv.auth_result === 'failure' ? 1 : 0),
+            lastEventAt: newEv.event_timestamp || prev.kpis.lastEventAt,
+          },
+          timelineEvents: [
+            ...prev.timelineEvents,
+            { event_timestamp: newEv.event_timestamp, auth_result: newEv.auth_result },
+          ].slice(-500),
+        };
+      });
+    },
+    onIncidentChange: (payload) => {
+      if (payload.eventType === 'DELETE') {
+        loadData();
+        return;
+      }
+      const row = payload.new;
+      if (!row || !matchesMode(row)) return;
+      loadData();
+    },
+    onDeviceChange: () => {
+      loadData();
+    },
+    onReconnectSync: loadData,
+  });
 
   return (
     <div>

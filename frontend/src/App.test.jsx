@@ -7,7 +7,7 @@ import { ToastProvider } from './hooks/useToast';
 import { NAV_ITEMS } from './layouts/SocLayout';
 
 const mockUseAuth = vi.fn();
-const mockFetchMonitoringSummary = vi.fn();
+const mockFetchMonitoringDevices = vi.fn();
 
 vi.mock('./hooks/useAuth', () => ({
   useAuth: () => mockUseAuth(),
@@ -18,7 +18,7 @@ vi.mock('./services/monitoringStatusService', async () => {
   const actual = await vi.importActual('./services/monitoringStatusService');
   return {
     ...actual,
-    fetchMonitoringSummary: () => mockFetchMonitoringSummary(),
+    fetchMonitoringDevices: () => mockFetchMonitoringDevices(),
   };
 });
 
@@ -35,16 +35,7 @@ function renderAt(path) {
 describe('Phase 7 Auth, Protected Routes, and SOC Layout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetchMonitoringSummary.mockResolvedValue({
-      totalDevices: 0,
-      onlineCount: 0,
-      offlineCount: 0,
-      pausedCount: 0,
-      lastEventAt: null,
-      lastHeartbeatAt: null,
-      monitoringState: 'idle',
-      collectorLabel: 'No Collector',
-    });
+    mockFetchMonitoringDevices.mockResolvedValue([]);
   });
 
   it('redirects unauthenticated users to login and validates login inputs', async () => {
