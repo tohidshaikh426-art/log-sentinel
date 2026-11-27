@@ -3,7 +3,10 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import SocLayout from './layouts/SocLayout';
+import EventsPage from './pages/EventsPage';
+import IpAnalysisPage from './pages/IpAnalysisPage';
 import LoginPage from './pages/LoginPage';
+import OverviewPage from './pages/OverviewPage';
 import PhaseStubPage from './pages/PhaseStubPage';
 
 export function AppRoutes() {
@@ -18,16 +21,7 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route
-          index
-          element={
-            <PhaseStubPage
-              title="Security Overview"
-              subtitle="KPI metrics, authentication trends, and recent threat activity."
-              phaseNote="Phase 8"
-            />
-          }
-        />
+        <Route index element={<OverviewPage />} />
         <Route
           path="live"
           element={
@@ -38,16 +32,7 @@ export function AppRoutes() {
             />
           }
         />
-        <Route
-          path="events"
-          element={
-            <PhaseStubPage
-              title="Authentication Events"
-              subtitle="Searchable, paginated authentication telemetry."
-              phaseNote="Phase 8"
-            />
-          }
-        />
+        <Route path="events" element={<EventsPage />} />
         <Route
           path="incidents"
           element={
@@ -58,16 +43,7 @@ export function AppRoutes() {
             />
           }
         />
-        <Route
-          path="ip-analysis"
-          element={
-            <PhaseStubPage
-              title="IP Analysis"
-              subtitle="Per-source IP authentication counts, failures, and risk summaries."
-              phaseNote="Phase 8"
-            />
-          }
-        />
+        <Route path="ip-analysis" element={<IpAnalysisPage />} />
         <Route
           path="analyzer"
           element={
