@@ -4,30 +4,31 @@
 
 - **Zero-Cost Operation (₹0):** Runs strictly within free-tier quotas of Vercel, Supabase, and GitHub, with a Python 3 collector running on user-controlled Linux machines.
 - **Defensive Only:** Read-only log monitoring and alert generation. Version 1.0 never performs automatic IP blocking, remote command execution, or active scanning.
-- **Least Privilege & Secret Isolation:** `SUPABASE_SERVICE_ROLE_KEY` never leaves Supabase Edge Function secrets. The frontend uses Supabase Auth + anon key + RLS. The collector uses a per-device hashed bearer token (`X-Collector-Token`).
+- **Least Privilege & Secret Isolation:** `SUPABASE_SERVICE_ROLE_KEY` never leaves Supabase Edge Function secrets. The frontend uses Supabase Auth + publishable/anon key + RLS. The collector uses a per-device hashed bearer token (`X-Collector-Token`).
 - **Explainable Detection:** Every incident records the exact rule ID, threshold, time window, supporting event IDs, and risk score breakdown.
 
 ## 2. Five-Component Architecture
 
 1. **Component A — Web Dashboard (`frontend/`)**
-   - Built with React, JavaScript, Vite, CSS, and Chart.js.
+   - Built with React, JavaScript, Vite, CSS, and Chart.js; hosted on Vercel Free Tier with SPA rewrites (`vercel.json`).
    - Authenticates administrators via Supabase Auth.
-   - Displays live KPIs, charts, paginated events, incidents, IP analytics, historical log uploads, reports, and Demo Mode controls.
+   - Displays Overview KPIs & charts, Live Monitoring stream, paginated Events, Incidents triage, IP Analysis, Historical Log Analyzer, CSV/PDF Reports, Settings, and Demo Mode.
    - Receives real-time updates via Supabase Realtime (`postgres_changes`).
 
 2. **Component B — Python Log Collector (`collector/`)**
-   - Runs as a standalone non-root agent on the monitored Linux host (e.g., member of `adm` group to read `/var/log/auth.log`).
-   - Tracks `(inode, byte_offset)` to avoid reprocessing and to survive `logrotate` and restarts.
-   - Normalizes raw log lines, runs local detection rules, sends periodic heartbeats, and buffers failed uploads in a local SQLite retry queue.
+   - Runs as a standalone non-root agent on the monitored Linux host (member of `adm` / `systemd-journal` group).
+   - Tracks `(inode, byte_offset)` in SQLite to avoid reprocessing and survive `logrotate` and restarts.
+   - Normalizes raw log lines, runs local detection rules, sends periodic 30s heartbeats, and buffers failed uploads in a local SQLite retry queue with exponential backoff.
 
 3. **Component C — Cloud Ingestion (`supabase/functions/`)**
    - `ingest-events`: Authenticates `X-Collector-Token`, validates event schemas and payload sizes, deduplicates via `event_fingerprint`, and persists events + correlated incidents.
-   - `collector-heartbeat`: Updates `monitored_devices.last_heartbeat`, collector version, and received counts.
-   - `analyze-upload`: Authenticated admin endpoint that parses uploaded `.log`/`.csv` files using the same rule specification and saves results.
+   - `collector-heartbeat`: Updates `monitored_devices.last_heartbeat`, collector version, and status.
+   - `analyze-upload`: Authenticated admin endpoint that parses uploaded `.log`/`.csv` files using mirrored parser/detection logic and saves results.
+   - `run-simulation`: Authenticated admin endpoint executing controlled Demo Mode scenarios tagged `is_simulated = true`.
 
 4. **Component D — Database (`supabase/migrations/`)**
-   - PostgreSQL with foreign keys, constraints, indexes, and strict Row Level Security.
-   - Supports `is_simulated` isolation so Demo Mode scenarios run through the real pipeline without mixing with live logs.
+   - PostgreSQL with foreign keys, constraints, indexes, `guard_incident_update()` forensic protection, and strict Row Level Security.
+   - Supports `is_simulated` isolation so Demo Mode scenarios run through the real pipeline and reset cleanly without affecting live logs.
 
 5. **Component E — Rule-Based Detection Engine**
    - Evaluates sliding time windows over normalized authentication events using configurable thresholds (`rules_config.json`).
@@ -54,5 +55,5 @@
 
 ## 4. Free-Tier Constraints & Mitigations
 
-- **Database Storage (500 MB) & Edge Function Invocations (500K/mo):** Mitigated by batching collector events (up to 25 events or 3–5s window), updating heartbeat timestamps in place on `monitored_devices` rather than inserting unbounded heartbeat rows, and capping `raw_event` length.
-- **Project Inactivity Pause:** Supabase Free projects pause after 7 days of inactivity. Demo Mode and documented wake-up steps ensure reliable academic demonstrations.
+- **Database Storage (500 MB) & Edge Function Invocations (500K/mo):** Mitigated by batching collector events (up to 25 events), updating heartbeat timestamps in place on `monitored_devices`, and capping `raw_event` length.
+- **Project Inactivity Pause:** Supabase Free projects pause after 7 days of inactivity. Demo Mode (including Offline Local Preview fallback) and documented wake-up steps ensure reliable academic demonstrations.
